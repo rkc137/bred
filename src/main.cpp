@@ -10,7 +10,7 @@ int main()
 {
     sf::RenderWindow window(
         sf::VideoMode::getFullscreenModes().front(),
-        "CMake SFML Project",
+        "bred",
         sf::State::Fullscreen
     );
     window.setFramerateLimit(144);
@@ -24,46 +24,75 @@ int main()
 
     std::random_device rd; // obtain a random number from hardware
     std::mt19937 gen(rd()); // seed the generator
-    // std::uniform_int_distribution<> distr(-step, step); // define the range
-    std::uniform_int_distribution<> distr(-1, 1); // define the range
+    std::uniform_int_distribution<> color_r(0, UINT32_MAX); // define the range
+    std::uniform_int_distribution<> distr(-step, step); // define the range
+    // std::uniform_int_distribution<> distr(-1, 1); // define the range
     
-    std::vector<sf::VertexArray> lines(1, sf::VertexArray(sf::PrimitiveType::Lines, 2));
-    for(auto &line : lines)
-    {
-        line[0].position = line[1].position = {0, 0};
-        line[0].color = line[1].color = sf::Color::Red;
-    }
+    std::vector<sf::Vertex> vertexes(2, sf::Vertex{});
+    for(auto &v : vertexes)
+        v.color = sf::Color::Black;
 
-    long long steps_count = 0;
+    std::array prims = {
+        sf::PrimitiveType::Points,        //!< List of individual points
+        sf::PrimitiveType::Lines,         //!< List of individual lines
+        sf::PrimitiveType::LineStrip,     //!< List of connected lines, a point uses the previous point to form a line
+        sf::PrimitiveType::Triangles,     //!< List of individual triangles
+        sf::PrimitiveType::TriangleStrip, //!< List of connected triangles, a point uses the two previous points to form a triangle
+        sf::PrimitiveType::TriangleFan  
+    };
+    auto premitiva = prims.begin();
+
     while(window.isOpen())
     {
         while(const std::optional event = window.pollEvent())
         {
             if(event->is<sf::Event::Closed>())
                 window.close();
-        }
-        steps_count++;
-        if(steps_count % 400 == 0)
-        {
-            auto old_count = lines.size();
-            lines.resize(2 * old_count);
-            std::copy_n(lines.begin(), old_count, lines.begin() + old_count);
+            else if(const auto* keyPressed = event->getIf<sf::Event::KeyPressed>())
+            {
+                switch (keyPressed->scancode)
+                {
+                    case sf::Keyboard::Scancode::D:
+                    {
+                        auto old_count = vertexes.size();
+                        vertexes.resize(2 * old_count);
+                        std::copy_n(vertexes.begin(), old_count, vertexes.begin() + old_count);
+                        for(auto &v : vertexes)
+                            v.color = sf::Color(color_r(gen));
+                        break;
+                    }
+                    case sf::Keyboard::Scancode::Space:
+                        premitiva++;
+                        if(premitiva == prims.end())
+                            premitiva = prims.begin();
+                        break;
+                    default:
+                        break;
+                }
+            }
         }
 
-        for(auto &line : lines)
+        // for(auto &v : vertexes)
+        //     v.position += {
+        //         static_cast<float>(distr(gen)),
+        //         static_cast<float>(distr(gen))
+        //         // static_cast<float>(distr(gen)) * step,
+        //         // static_cast<float>(distr(gen)) * step
+        //     };
+        
+        for(auto vertex = vertexes.begin(); vertex != vertexes.end(); vertex += 2)
         {
-            line[0].position = line[1].position;
-            line[1].position += {
-                // static_cast<float>(distr(gen)),
-                // static_cast<float>(distr(gen)),
-                static_cast<float>(distr(gen)) * step,
-                static_cast<float>(distr(gen)) * step
+            vertex->position = (vertex + 1)->position;
+            (vertex + 1)->position += {
+                static_cast<float>(distr(gen)),
+                static_cast<float>(distr(gen))
+                // static_cast<float>(distr(gen)) * step,
+                // static_cast<float>(distr(gen)) * step
             };
-            // std::cout << static_cast<float>((rand() % 2) - 1) * step << ' ';
-            window.draw(line);
         }
-        window.draw(back);
 
+        window.draw(vertexes.data(), vertexes.size(), *premitiva);
+        window.draw(back);
         window.display();
         // window.clear();
     }
