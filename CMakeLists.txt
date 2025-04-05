@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.28)
 project(SDP LANGUAGES CXX)
 
+#set(FETCHCONTENT_UPDATES_DISCONNECTED ON)
 include(FetchContent)
 FetchContent_Declare(SFML
     GIT_REPOSITORY https://github.com/SFML/SFML.git
